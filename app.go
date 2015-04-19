@@ -24,23 +24,23 @@ type Synonym struct {
 }
 
 func DetailInsert() {
-	db, err := sql.Open("mysql", "dbuser:1861dleae@/mydb")
+	db, err := sql.Open("mysql", "dbuser:1861dleae@(mydbinstance.cfjiimohdkcd.ap-northeast-1.rds.amazonaws.com:3306)/mydb")
 	if err != nil {
-		panic("Error opening DB:", err.Error())
+		panic("Error opening DB:"+ err.Error())
 	}
 	defer db.Close()
 
 	someParam := "value"
 
-	res, err := db.Exec(`INSERT INTO foo VALUES("bar", ?))`, someParam)
+	res, err := db.Exec("INSERT INTO foo VALUES(bar, ?)", someParam)
 	if err != nil {
-		println("Exec err:", err.Error())
+		fmt.Println("Exec err:", err.Error())
 	} else {
 		id, err := res.LastInsertId()
 		if err != nil {
-			println("LastInsertId:", id)
+			fmt.Println("Error:", err.Error())
 		} else {
-			println("Error:", err.Error())
+			println("LastInsertId:", id)
 		}
 	}
 
