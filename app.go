@@ -119,30 +119,26 @@ func main() {
 	base_url := "/list/"
 	for _, abc := range "abcdefghijklmnopqrstuvwxyz" {
 		for i := 1; ; i++ {
-			wg.Add(1)
-			go func(base_url string) {
-				url := base_url + string(abc) + "/" + strconv.Itoa(i)
-				urls := GetUrls(url)
-				if len(urls) < 1 {
-					break
-				}
-				for _, url1 := range urls {
-					wg.Add(1)
-					go func(url1 string) {
-						fmt.Println("url1 :", url1)
-						for _, detail_url := range GetUrls(url1) {
-							wg.Add(1)
-							go func(detail_url string) {
-								detail := GetDetail(detail_url, wg, m)
-								DetailInsert(detail, db)
-								wg.Done()
-							}(detail_url)
-						}
-						wg.Done()
-					}(url1)
-				}
-				wg.Done()
-			}(base_url)
+			url := base_url + string(abc) + "/" + strconv.Itoa(i)
+			urls := GetUrls(url)
+			if len(urls) < 1 {
+				break
+			}
+			for _, url1 := range urls {
+				wg.Add(1)
+				go func(url1 string) {
+					fmt.Println("url1 :", url1)
+					for _, detail_url := range GetUrls(url1) {
+						wg.Add(1)
+						go func(detail_url string) {
+							detail := GetDetail(detail_url, wg, m)
+							DetailInsert(detail, db)
+							wg.Done()
+						}(detail_url)
+					}
+					wg.Done()
+				}(url1)
+			}
 		}
 	}
 	wg.Wait()
