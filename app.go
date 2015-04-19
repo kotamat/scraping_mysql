@@ -23,26 +23,51 @@ type Synonym struct {
 	Text  string
 }
 
-func DetailInsert() {
+func DetailInsert(detail Detail) bool {
 	db, err := sql.Open("mysql", "dbuser:1861dleae@(mydbinstance.cfjiimohdkcd.ap-northeast-1.rds.amazonaws.com:3306)/mydb")
 	if err != nil {
-		panic("Error opening DB:"+ err.Error())
+		panic("Error opening DB:" + err.Error())
 	}
 	defer db.Close()
 
-	someParam := "value"
+	fmt.Println("insert :", detail.Title)
 
-	res, err := db.Exec("INSERT INTO foo VALUES(bar, ?)", someParam)
+	// insert to details
+	res, err := db.Exec("INSERT INTO details (title) VALUES(?)", detail.Title)
 	if err != nil {
 		fmt.Println("Exec err:", err.Error())
+		return false
 	} else {
-		id, err := res.LastInsertId()
+		detail_id, err := res.LastInsertId()
 		if err != nil {
 			fmt.Println("Error:", err.Error())
-		} else {
-			println("LastInsertId:", id)
+			return false
 		}
 	}
+
+	// insert to means
+	for _, mean := range detail.Means {
+		res, err := db.Exec("INSERT INTO means (detail_id, form, description) VALUES(?, ?,?)", detail_id, mean.Form, mean.Description)
+		if err != nil {
+			fmt.Println("Exec err:", err.Error())
+			return false
+		} else {
+			mean_id, err := res.LastInsertId()
+			if err != nil {
+				fmt.Println("Error:", err.Error())
+				return false
+			}
+		}
+		for _, synonym := range mean.Synonyms {
+			res, err := db.Exec("INSERT INTO synonyms (detail_id, mean_id, style, text) VALUES(?, ?,?,?)", detail_id, mean_id, synonym.Style, synonym.Text)
+			if err != nil {
+				fmt.Println("Exec err:", err.Error())
+				return false
+			}
+
+		}
+	}
+	return true
 
 }
 
@@ -79,7 +104,7 @@ func GetDetail(url string, wg *sync.WaitGroup, m *sync.Mutex) Detail {
 
 	wg.Done()
 	detail := Detail{title, means}
-	fmt.Println(detail)
+	DetailInsert(detail)
 	return detail
 }
 
