@@ -120,7 +120,7 @@ func main() {
 	for _, abc := range "abcdefghijklmnopqrstuvwxyz" {
 		for i := 1; ; i++ {
 			wg.Add(1)
-			go func(urls []string) {
+			go func(base_url string) {
 				url := base_url + string(abc) + "/" + strconv.Itoa(i)
 				urls := GetUrls(url)
 				if len(urls) < 1 {
@@ -142,7 +142,7 @@ func main() {
 					}(url1)
 				}
 				wg.Done()
-			}(urls)
+			}(base_url)
 		}
 	}
 	wg.Wait()
