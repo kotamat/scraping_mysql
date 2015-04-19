@@ -23,12 +23,7 @@ type Synonym struct {
 	Text  string
 }
 
-func DetailInsert(detail Detail) bool {
-	db, err := sql.Open("mysql", "dbuser:1861dleae@(mydbinstance.cfjiimohdkcd.ap-northeast-1.rds.amazonaws.com:3306)/mydb")
-	if err != nil {
-		panic("Error opening DB:" + err.Error())
-	}
-	defer db.Close()
+func DetailInsert(detail Detail, db *DB) bool {
 
 	fmt.Println("insert :", detail.Title)
 
@@ -102,22 +97,33 @@ func GetDetail(url string, wg *sync.WaitGroup, m *sync.Mutex) Detail {
 		means = append(means, Mean{form, description, synonyms})
 	})
 
-	wg.Done()
 	detail := Detail{title, means}
-	DetailInsert(detail)
+	//DetailInsert(detail)
+	fmt.Println("insert :", detail.Title)
 	return detail
 }
 
 func main() {
+	db, err := sql.Open("mysql", "dbuser:1861dleae@(mydbinstance.cfjiimohdkcd.ap-northeast-1.rds.amazonaws.com:3306)/mydb")
+	if err != nil {
+		panic("Error opening DB:" + err.Error())
+	}
+	defer db.Close()
+
 	wg := new(sync.WaitGroup)
 	m := new(sync.Mutex)
 	url := "/list/a"
 	for _, url1 := range GetUrls(url) {
-		fmt.Println("in for url1")
-		for _, url2 := range GetUrls(url1) {
-			wg.Add(1)
-			go GetDetail(url2, wg, m)
-		}
+		go func() {
+			for _, detail_url := range GetUrls(url1) {
+				go func() {
+					wg.Add(1)
+					detail := GetDetail(detail_url, wg, m)
+					DetailInsert(detail, db)
+					wg.Done()
+				}()
+			}
+		}()
 	}
 	wg.Wait()
 }
