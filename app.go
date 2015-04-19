@@ -23,9 +23,11 @@ type Synonym struct {
 	Text  string
 }
 
-func DetailInsert(detail Detail, db *DB) bool {
+func DetailInsert(detail Detail, db *sql.DB) bool {
 
 	fmt.Println("insert :", detail.Title)
+
+	var detail_id, mean_id int64
 
 	// insert to details
 	res, err := db.Exec("INSERT INTO details (title) VALUES(?)", detail.Title)
@@ -33,11 +35,12 @@ func DetailInsert(detail Detail, db *DB) bool {
 		fmt.Println("Exec err:", err.Error())
 		return false
 	} else {
-		detail_id, err := res.LastInsertId()
+		id, err := res.LastInsertId()
 		if err != nil {
 			fmt.Println("Error:", err.Error())
 			return false
 		}
+		detail_id = id
 	}
 
 	// insert to means
@@ -47,14 +50,15 @@ func DetailInsert(detail Detail, db *DB) bool {
 			fmt.Println("Exec err:", err.Error())
 			return false
 		} else {
-			mean_id, err := res.LastInsertId()
+			id, err := res.LastInsertId()
 			if err != nil {
 				fmt.Println("Error:", err.Error())
 				return false
 			}
+			mean_id = id
 		}
 		for _, synonym := range mean.Synonyms {
-			res, err := db.Exec("INSERT INTO synonyms (detail_id, mean_id, style, text) VALUES(?, ?,?,?)", detail_id, mean_id, synonym.Style, synonym.Text)
+			_, err := db.Exec("INSERT INTO synonyms (detail_id, mean_id, style, text) VALUES(?, ?,?,?)", detail_id, mean_id, synonym.Style, synonym.Text)
 			if err != nil {
 				fmt.Println("Exec err:", err.Error())
 				return false
@@ -98,7 +102,6 @@ func GetDetail(url string, wg *sync.WaitGroup, m *sync.Mutex) Detail {
 	})
 
 	detail := Detail{title, means}
-	//DetailInsert(detail)
 	fmt.Println("insert :", detail.Title)
 	return detail
 }
@@ -112,18 +115,21 @@ func main() {
 
 	wg := new(sync.WaitGroup)
 	m := new(sync.Mutex)
-	url := "/list/a"
+	url := "/list/"
 	for _, url1 := range GetUrls(url) {
-		go func() {
+		wg.Add(1)
+		go func(url1 string) {
+			fmt.Println("url1 :", url1)
 			for _, detail_url := range GetUrls(url1) {
-				go func() {
-					wg.Add(1)
+				wg.Add(1)
+				go func(detail_url string) {
 					detail := GetDetail(detail_url, wg, m)
 					DetailInsert(detail, db)
 					wg.Done()
-				}()
+				}(detail_url)
 			}
-		}()
+			wg.Done()
+		}(url1)
 	}
 	wg.Wait()
 }
