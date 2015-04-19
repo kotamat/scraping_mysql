@@ -1,8 +1,10 @@
 package main
 
 import (
+	"database/sql"
 	"fmt"
 	"github.com/PuerkitoBio/goquery"
+	_ "github.com/go-sql-driver/mysql"
 	"sync"
 )
 
@@ -19,6 +21,29 @@ type Mean struct {
 type Synonym struct {
 	Style string
 	Text  string
+}
+
+func DetailInsert() {
+	db, err := sql.Open("mysql", "dbuser:1861dleae@/mydb")
+	if err != nil {
+		panic("Error opening DB:", err.Error())
+	}
+	defer db.Close()
+
+	someParam := "value"
+
+	res, err := db.Exec(`INSERT INTO foo VALUES("bar", ?))`, someParam)
+	if err != nil {
+		println("Exec err:", err.Error())
+	} else {
+		id, err := res.LastInsertId()
+		if err != nil {
+			println("LastInsertId:", id)
+		} else {
+			println("Error:", err.Error())
+		}
+	}
+
 }
 
 func GetUrls(url string) []string {
@@ -58,7 +83,7 @@ func GetDetail(url string, wg *sync.WaitGroup, m *sync.Mutex) Detail {
 	return detail
 }
 
-func main(){
+func main() {
 	wg := new(sync.WaitGroup)
 	m := new(sync.Mutex)
 	url := "/list/a"
